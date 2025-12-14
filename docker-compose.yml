@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jenkins_data:/var/jenkins_home
+      - ./plugins.txt:/usr/share/jenkins/ref/plugins.txt
+    networks:
+      - cicd-network
+    depends_on:
+      - sonarqube
+      
+  ssh-agent:
+    image: jenkins/ssh-agent
+    networks:
+      - cicd-network
+    depends_on:
+      - sonarqube
+      
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonarqube
+      - SONAR_JDBC_PASSWORD=sonarqube
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - cicd-network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=sonarqube
+      - POSTGRES_PASSWORD=sonarqube
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgresql_db:/var/lib/postgresql
+    networks:
+      - cicd-network
+
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      - nexus_data:/nexus-data
+    networks:
+      - cicd-network
+
+  jenkins_slave1:
+    build: 
+      context: .
+      dockerfile: ./dockerfileCentOS
+    container_name: jenkins_slave1
+    ports:
+      - "3333:22"
+    networks:
+      - cicd-network
+      
+  jenkins_slave2:
+    build: 
+      context: .
+      dockerfile: ./dockerfileCentOS
+    container_name: jenkins_slave2
+    networks:
+      - cicd-network
+    ports:
+      - "4444:22"
+
+volumes:
+  jenkins_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  postgres_data:
+  postgresql_db:
+  nexus_data:
+
+networks:
+  cicd-network:
+    driver: bridge

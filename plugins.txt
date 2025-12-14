@@ -1,0 +1,9 @@
+git
+workflow-aggregator
+pipeline-stage-view
+ssh
+ssh-agent
+sonar
+allure-jenkins-plugin
+pipeline-utility-steps
+nexus-artifact-uploader
