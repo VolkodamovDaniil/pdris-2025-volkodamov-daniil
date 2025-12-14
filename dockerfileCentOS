@@ -1,0 +1,35 @@
+FROM centos:8
+
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+RUN sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
+RUN sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
+
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
+# Установка нужных служб
+RUN yum update -y && yum  install -y openssh-server sudo maven java-17-openjdk git
+RUN mkdir /var/run/sshd
+
+
+# Создание пользователя вместо root
+RUN useradd -m -s /bin/bash admin
+RUN echo 'admin:securepassword' | chpasswd
+
+# Добавление пользователя в sudoers
+RUN echo 'admin ALL=(ALL) ALL' >> /etc/sudoers
+
+# Настройка SSH
+RUN sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+RUN sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+RUN ssh-keygen -A
+
+# Настройка ключей SSH
+RUN mkdir /home/admin/.ssh
+# COPY authorized_keys /home/admin/.ssh/
+RUN chown -R admin:admin /home/admin/.ssh
+RUN chmod 700 /home/admin/.ssh
+# RUN chmod 600 /home/admin/.ssh/authorized_keys
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
