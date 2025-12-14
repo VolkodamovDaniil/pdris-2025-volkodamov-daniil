@@ -1,0 +1,11 @@
+- name: restart java app
+  shell: |
+    if [ -f /var/run/myapp.pid ]; then
+      kill $(cat /var/run/myapp.pid) 2>/dev/null || true
+      rm -f /var/run/myapp.pid
+    fi
+    cd /opt/myapp/target
+    nohup java -jar *.jar > /var/log/myapp.log 2>&1 &
+    echo $! > /var/run/myapp.pid
+  args:
+    chdir: /opt/myapp

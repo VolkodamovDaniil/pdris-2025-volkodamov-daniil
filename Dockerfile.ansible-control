@@ -1,0 +1,37 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    sudo \
+    python3 \
+    python3-pip \
+    sshpass \
+    vim \
+    net-tools \
+    iputils-ping \
+    curl \
+    git
+
+RUN apt-get install -y ansible
+
+RUN useradd -m -s /bin/bash admin && \
+    echo 'admin:admin123' | chpasswd && \
+    echo 'admin ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+RUN mkdir -p /home/admin/.ssh && \
+    ssh-keygen -t rsa -N "" -f /home/admin/.ssh/id_rsa && \
+    cat /home/admin/.ssh/id_rsa.pub >> /home/admin/.ssh/authorized_keys && \
+    chown -R admin:admin /home/admin/.ssh && \
+    chmod 700 /home/admin/.ssh && \
+    chmod 600 /home/admin/.ssh/authorized_keys
+
+RUN mkdir /var/run/sshd
+RUN sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]

@@ -1,0 +1,87 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Java 17
+  apt:
+    name: openjdk-17-jdk
+    state: present
+
+- name: Install Maven
+  apt:
+    name: maven
+    state: present
+
+- name: Install curl (for health checks)
+  apt:
+    name: curl
+    state: present
+
+- name: Create application directory
+  file:
+    path: /opt/myapp
+    state: directory
+    owner: admin
+    group: admin
+
+- name: Copy source code
+  copy:
+    src: ../../../../java-app/
+    dest: /opt/myapp
+    owner: admin
+    group: admin
+
+- name: Build application with Maven
+  command: 
+    chdir: /opt/myapp
+    cmd: mvn clean package -DskipTests
+  become_user: admin
+
+- name: Copy start script
+  copy:
+    src: start-app.sh
+    dest: /opt/myapp/start-app.sh
+    mode: '0755'
+    owner: admin
+    group: admin
+
+- name: Create startup script
+  copy:
+    content: |
+      #!/bin/bash
+      cd /opt/myapp/target
+      nohup java -jar *.jar > /var/log/myapp.log 2>&1 &
+      echo $! > /var/run/myapp.pid
+    dest: /opt/myapp/start-background.sh
+    mode: '0755'
+    owner: admin
+    group: admin
+
+- name: Start Java application
+  shell: |
+    if [ -f /var/run/myapp.pid ]; then
+      kill $(cat /var/run/myapp.pid) 2>/dev/null || true
+      rm -f /var/run/myapp.pid
+    fi
+    
+    cd /opt/myapp/target
+    nohup java -jar *.jar > /var/log/myapp.log 2>&1 &
+    echo $! > /var/run/myapp.pid
+  args:
+    chdir: /opt/myapp
+    creates: /var/run/myapp.pid
+  register: app_start
+
+- name: Check if app is running
+  shell: |
+    sleep 3
+    curl -s -f http://localhost:8080/health > /dev/null && echo "OK" || echo "FAIL"
+  register: app_check
+  failed_when: "'FAIL' in app_check.stdout"
+
+- name: Show app logs if failed
+  debug:
+    msg: "Application failed to start. Logs: {{ lookup('file', '/var/log/myapp.log') | default('No logs') }}"
+  when: app_check.failed
