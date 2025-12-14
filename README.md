@@ -1,23 +1,16 @@
-Собираем наше приложение с помощью `docker-compose up` и проверяем через `docker-compose ps`.
+Убеждаемся, что кластер Kubernetes запущен:
 
-![first-compose](images/first-compose.png)
+![nodes](images/nodes.png)
 
-Запускаем скрипт отправки в registry:
+Применяем написанные манифесты:
 
-![registry](images/registry.png)
+![apply](images/apply.png)
 
-Убеждаемся, что всё загрузилось, на https://hub.docker.com:
+Проверяем, что всё развернулось:
 
-![hub](images/hub.png)
+![get-all](images/get-all.png)
 
-Также проверим работоспособность `docker pull`:
+Также можем заглянуть в логи приложения:
 
-![pull](images/pull.png)
+![logs](images/logs.png)
 
-Теперь соберём приложение с образом из registry:
-
-![second-compose](images/second-compose.png)
-
-И убедимся, что оно работает:
-
-![api](images/api.png)
