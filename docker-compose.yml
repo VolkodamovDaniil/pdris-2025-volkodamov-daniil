@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  ansible-control:
+    build: 
+      context: .
+      dockerfile: Dockerfile.ansible-control
+    container_name: ansible-control
+    hostname: ansible-control
+    volumes:
+      - ./ansible:/home/admin/ansible
+      - ./java-app:/home/admin/java-app
+    working_dir: /home/admin/ansible
+    networks:
+      - ansible-net
+    tty: true
+    stdin_open: true
+
+  nginx-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: nginx-server
+    hostname: nginx-server
+    ports:
+      - "80:80"
+    networks:
+      - ansible-net
+    depends_on:
+      - app-server
+
+  app-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: app-server
+    hostname: app-server
+    networks:
+      - ansible-net
+    expose:
+      - "8080"
+
+networks:
+  ansible-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,12 @@
+---
+- name: Setup Nginx
+  hosts: nginx
+  become: yes
+  roles:
+    - nginx
+
+- name: Deploy Java Application
+  hosts: app
+  become: yes
+  roles:
+    - java-app
